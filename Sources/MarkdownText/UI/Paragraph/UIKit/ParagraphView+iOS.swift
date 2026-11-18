@@ -6,7 +6,35 @@
 #if canImport(UIKit)
 import SwiftUI
 
-struct ParagraphView: UIViewRepresentable {
+struct ParagraphView: View {
+  @Environment(\.displayScale) private var displayScale
+
+  var contents: NSMutableAttributedString
+  var lineSpacing: CGFloat?
+
+  var body: some View {
+    PixelAlignedParagraphLayout(displayScale: displayScale) {
+      NativeParagraphView(contents: contents, lineSpacing: lineSpacing)
+    }
+  }
+}
+
+/// In this SwiftUI bridge, a fractional origin can narrow the paragraph's placed bounds.
+/// Align the origin to the pixel grid to preserve its measured width.
+private struct PixelAlignedParagraphLayout: Layout {
+  let displayScale: CGFloat
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    subviews[0].sizeThatFits(proposal)
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    let leading = (bounds.minX * displayScale).rounded() / displayScale
+    subviews[0].place(at: CGPoint(x: leading, y: bounds.minY), anchor: .topLeading, proposal: proposal)
+  }
+}
+
+private struct NativeParagraphView: UIViewRepresentable {
   @Environment(\.openURL) var openURL
   @Environment(\.markdownConfig) var config: MarkdownRenderConfig
   @Environment(\.markdownController) var markdownController: MarkdownController?
